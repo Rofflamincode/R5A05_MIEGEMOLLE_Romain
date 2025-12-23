@@ -2,6 +2,8 @@ package com.example.R5A05_MIEGEMOLLE_Romain.model;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "articles")
@@ -49,5 +51,29 @@ public class Article {
 
     public void setContent(String content) {
         this.content = content;
+    }
+    @ManyToMany
+    @JoinTable(
+            name = "article_likes",
+            joinColumns = @JoinColumn(name = "article_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> likedBy = new HashSet<>();
+
+
+    @ManyToMany
+    @JoinTable(
+            name = "article_dislikes",
+            joinColumns = @JoinColumn(name = "article_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> dislikedBy = new HashSet<>();
+
+    public Set<User> getLikedBy() {
+        return likedBy;
+    }
+
+    public Set<User> getDislikedBy() {
+        return dislikedBy;
     }
 }

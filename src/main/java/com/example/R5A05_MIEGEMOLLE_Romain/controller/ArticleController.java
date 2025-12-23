@@ -72,5 +72,42 @@ public class ArticleController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Article> likeArticle(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ) {
+        Article article = articleRepo.findById(id).orElse(null);
+        User user = userRepo.findById(userId).orElse(null);
+
+        if (article == null || user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        article.getDislikedBy().remove(user);
+        article.getLikedBy().add(user);
+
+        return ResponseEntity.ok(articleRepo.save(article));
+    }
+
+    @PostMapping("/{id}/dislike")
+    public ResponseEntity<Article> dislikeArticle(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ) {
+        Article article = articleRepo.findById(id).orElse(null);
+        User user = userRepo.findById(userId).orElse(null);
+
+        if (article == null || user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        article.getLikedBy().remove(user);
+        article.getDislikedBy().add(user);
+
+        return ResponseEntity.ok(articleRepo.save(article));
+    }
+
+
 
 }
