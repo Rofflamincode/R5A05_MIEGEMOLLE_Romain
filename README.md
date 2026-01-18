@@ -25,7 +25,7 @@ Projet réalisé dans le cadre des TP Spring **R5A05** : une API HTTP pour gére
 1. Cloner le dépôt et ouvrir le projet dans IntelliJ.
 2. Installer les dépendances Maven :
 
-```bash
+
 mvn clean install -U
 Base de données (MySQL)
 Par défaut, l'application est configurée pour se connecter à :
