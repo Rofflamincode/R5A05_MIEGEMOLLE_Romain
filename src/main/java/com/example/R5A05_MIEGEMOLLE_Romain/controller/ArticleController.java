@@ -9,6 +9,11 @@ import com.example.R5A05_MIEGEMOLLE_Romain.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.example.R5A05_MIEGEMOLLE_Romain.dto.*;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 
 import java.time.Instant;
 import java.util.List;
@@ -43,16 +48,29 @@ public class ArticleController {
 
 
     @GetMapping
-    public List<Article> list() {
-        return articleRepo.findAll();
+    public List<?> list() {
+        List<Article> articles = articleRepo.findAll();
+
+        if (isAnonymous()) {
+            return articles.stream().map(this::toPublic).toList();
+        }
+        if (hasRole("MODERATOR")) {
+            return articles.stream().map(this::toModerator).toList();
+        }
+        return articles.stream().map(this::toPublisher).toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Article> getById(@PathVariable Long id) {
+    public ResponseEntity<?> getById(@PathVariable Long id) {
         return articleRepo.findById(id)
-                .map(ResponseEntity::ok)
+                .map(article -> {
+                    if (isAnonymous()) return ResponseEntity.ok(toPublic(article));
+                    if (hasRole("MODERATOR")) return ResponseEntity.ok(toModerator(article));
+                    return ResponseEntity.ok(toPublisher(article));
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<Article> update(
@@ -121,4 +139,55 @@ public class ArticleController {
 
         return ResponseEntity.ok(articleRepo.save(article));
     }
+    private Authentication auth() {
+        return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    private boolean isAnonymous() {
+        Authentication a = auth();
+        return a == null || a instanceof AnonymousAuthenticationToken || !a.isAuthenticated();
+    }
+
+    private boolean hasRole(String role) {
+        Authentication a = auth();
+        if (a == null) return false;
+        String wanted = "ROLE_" + role;
+        return a.getAuthorities().stream().anyMatch(ga -> ga.getAuthority().equals(wanted));
+    }
+
+    private UserSummaryDTO toUserSummary(User u) {
+        return new UserSummaryDTO(u.getId(), u.getUsername());
+    }
+
+    private ArticlePublicDTO toPublic(Article a) {
+        return new ArticlePublicDTO(a.getId(), a.getPublishedAt(), a.getAuthor().getUsername(), a.getContent());
+    }
+
+    private ArticlePublisherDTO toPublisher(Article a) {
+        return new ArticlePublisherDTO(
+                a.getId(),
+                a.getPublishedAt(),
+                a.getAuthor().getUsername(),
+                a.getContent(),
+                a.getLikedBy().size(),
+                a.getDislikedBy().size()
+        );
+    }
+
+    private ArticleModeratorDTO toModerator(Article a) {
+        var liked = a.getLikedBy().stream().map(this::toUserSummary).toList();
+        var disliked = a.getDislikedBy().stream().map(this::toUserSummary).toList();
+
+        return new ArticleModeratorDTO(
+                a.getId(),
+                a.getPublishedAt(),
+                toUserSummary(a.getAuthor()),
+                a.getContent(),
+                liked,
+                liked.size(),
+                disliked,
+                disliked.size()
+        );
+    }
+
 }
