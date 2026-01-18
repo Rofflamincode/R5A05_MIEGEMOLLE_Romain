@@ -26,7 +26,8 @@ public class ArticleController {
 
     @PostMapping
     public Article create(@RequestBody CreateArticleRequest req) {
-        User author = userRepo.findById(req.authorId()).orElseThrow();
+        String username = com.example.R5A05_MIEGEMOLLE_Romain.security.SecurityUtils.currentUsername();
+        User author = userRepo.findByUsername(username).orElseThrow();
 
         Article a = new Article();
         a.setAuthor(author);
@@ -35,6 +36,7 @@ public class ArticleController {
 
         return articleRepo.save(a);
     }
+
 
     @GetMapping
     public List<Article> list() {
@@ -73,12 +75,16 @@ public class ArticleController {
     }
 
     @PostMapping("/{id}/like")
-    public ResponseEntity<Article> likeArticle(
-            @PathVariable Long id,
-            @RequestParam Long userId
-    ) {
+    public ResponseEntity<Article> likeArticle(@PathVariable Long id) {
+
+        String username = com.example.R5A05_MIEGEMOLLE_Romain.security.SecurityUtils.currentUsername();
+
+        if (username == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        User user = userRepo.findByUsername(username).orElse(null);
         Article article = articleRepo.findById(id).orElse(null);
-        User user = userRepo.findById(userId).orElse(null);
 
         if (article == null || user == null) {
             return ResponseEntity.notFound().build();
@@ -91,12 +97,16 @@ public class ArticleController {
     }
 
     @PostMapping("/{id}/dislike")
-    public ResponseEntity<Article> dislikeArticle(
-            @PathVariable Long id,
-            @RequestParam Long userId
-    ) {
+    public ResponseEntity<Article> dislikeArticle(@PathVariable Long id) {
+
+        String username = com.example.R5A05_MIEGEMOLLE_Romain.security.SecurityUtils.currentUsername();
+
+        if (username == null) {
+            return ResponseEntity.status(401).build(); // pas connecté
+        }
+
+        User user = userRepo.findByUsername(username).orElse(null);
         Article article = articleRepo.findById(id).orElse(null);
-        User user = userRepo.findById(userId).orElse(null);
 
         if (article == null || user == null) {
             return ResponseEntity.notFound().build();
@@ -107,7 +117,4 @@ public class ArticleController {
 
         return ResponseEntity.ok(articleRepo.save(article));
     }
-
-
-
 }
