@@ -1,19 +1,16 @@
 package com.example.R5A05_MIEGEMOLLE_Romain.controller;
 
-import com.example.R5A05_MIEGEMOLLE_Romain.dto.CreateArticleRequest;
-import com.example.R5A05_MIEGEMOLLE_Romain.dto.UpdateArticleRequest;
+import com.example.R5A05_MIEGEMOLLE_Romain.dto.*;
 import com.example.R5A05_MIEGEMOLLE_Romain.model.Article;
 import com.example.R5A05_MIEGEMOLLE_Romain.model.User;
 import com.example.R5A05_MIEGEMOLLE_Romain.repository.ArticleRepository;
 import com.example.R5A05_MIEGEMOLLE_Romain.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import com.example.R5A05_MIEGEMOLLE_Romain.dto.*;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -71,7 +68,7 @@ public class ArticleController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-
+    @PreAuthorize("(hasRole('PUBLISHER') and @articleSecurity.isAuthor(#id))")
     @PutMapping("/{id}")
     public ResponseEntity<Article> update(
             @PathVariable Long id,
@@ -86,6 +83,7 @@ public class ArticleController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasRole('MODERATOR') or (hasRole('PUBLISHER') and @articleSecurity.isAuthor(#id))")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!articleRepo.existsById(id)) {
@@ -96,6 +94,7 @@ public class ArticleController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('PUBLISHER') and @articleSecurity.isNotAuthor(#id)")
     @PostMapping("/{id}/like")
     public ResponseEntity<Article> likeArticle(@PathVariable Long id) {
 
@@ -118,6 +117,7 @@ public class ArticleController {
         return ResponseEntity.ok(articleRepo.save(article));
     }
 
+    @PreAuthorize("hasRole('PUBLISHER') and @articleSecurity.isNotAuthor(#id)")
     @PostMapping("/{id}/dislike")
     public ResponseEntity<Article> dislikeArticle(@PathVariable Long id) {
 
