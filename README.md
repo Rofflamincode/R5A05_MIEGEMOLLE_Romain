@@ -1,291 +1,229 @@
-R5A05 – TP Spring Boot : API Blog (RPC HTTP) + JWT + Autorisations
-1. Contexte et objectif
+# R5A05 — API Blog Spring Boot (TP1 / TP2 / TP3)
 
-Ce projet met en place une API HTTP (style RPC) permettant de gérer des articles de blog :
+## Sommaire
+1. Objectif  
+2. Stack technique  
+3. Livrables attendus (tags Git)  
+4. Contexte fonctionnel  
+5. Configuration & lancement  
+6. Données de test (SQL)  
+7. Endpoints (API)  
+8. JWT (utilisation + durée de vie)  
+9. Tests Postman (validation TP)  
+10. Vérifications MySQL  
+11. Conclusion  
 
-Authentification via JSON Web Token (JWT)
+---
 
-Gestion des articles : création, consultation, modification, suppression
+## 1) Objectif
 
-Gestion des réactions : like / dislike (en enregistrant quels utilisateurs ont liké/disliké)
+Développer une API HTTP (style RPC) de gestion d’articles de blog avec :
 
-Application d’autorisations selon rôle :
+- Authentification JWT
+- CRUD Articles (création, lecture, modification, suppression)
+- Like / Dislike avec traçabilité des utilisateurs ayant réagi
+- Autorisations selon rôle : MODERATOR / PUBLISHER / Non authentifié
 
-MODERATOR
+---
 
-PUBLISHER
+## 2) Stack technique
 
-Non authentifié
+- Java 21
+- Spring Boot 3.5.6
+- Maven
+- MySQL
+- Spring Web / Spring Data JPA
+- Spring Security + JWT (JJWT)
 
-Le projet est réalisé avec Spring Boot, Spring Data JPA, MySQL, Spring Security.
+---
 
-2. Technologies
+## 3) Livrables attendus (tags Git)
 
-Java 21
+TP1  
+- tag `hello-world` : endpoint `GET /bonjour` retourne "Bonjour le monde !"
 
-Spring Boot 3.5.6
+TP2  
+- tag `db-ready` : connexion DB (MySQL) + génération des tables via JPA  
+- commits par fonctionnalité (CRUD articles, like/dislike, etc.)
 
-Maven
+TP3  
+- tag `authentification` : obligation de s’authentifier pour accéder aux routes protégées (JWT)  
+- tag `autorisations` : adaptation du comportement selon rôle + identité (publisher/moderator/public)
 
-MySQL
+---
 
-Spring Data JPA
+## 4) Contexte fonctionnel
 
-Spring Security + JWT (JJWT)
+### Fonctionnalités
+- Authentification utilisateurs (JWT)
+- Articles : publication, consultation, modification, suppression
+- Like / Dislike : retrouver les utilisateurs ayant liké/disliké
 
-3. Rendu attendu et tags Git
-TP1 – Initialisation
+### Autorisations
 
-Tag : hello-world
+Non authentifié  
+- Peut consulter les articles existants  
+- Infos visibles : auteur, date de publication, contenu  
 
-Preuve : l’application démarre et un endpoint renvoie “Bonjour le monde !” à l’adresse http://localhost:8080/bonjour
+PUBLISHER  
+- Peut poster un article  
+- Peut consulter les articles (avec totaux like/dislike)  
+- Peut modifier/supprimer uniquement ses articles  
+- Peut liker/disliker uniquement les articles des autres  
 
-TP2 – Implémentation
+MODERATOR  
+- Peut consulter n’importe quel article avec informations complètes :  
+  - auteur, date, contenu  
+  - liste des utilisateurs ayant liké + total likes  
+  - liste des utilisateurs ayant disliké + total dislikes  
+- Peut supprimer n’importe quel article  
 
-Tag : db-ready
+---
 
-Preuve : connexion MySQL fonctionnelle et application démarrable.
+## 5) Configuration & lancement
 
-Un commit par fonctionnalité ajoutée (CRUD articles + like/dislike + utilisateurs si présents)
+### Pré-requis
+- JDK 21
+- MySQL lancé
+- Maven
 
-TP3 – Sécurisation
+### Configuration (application.properties)
+Fichier : `src/main/resources/application.properties`
 
-Tag : authentification
+Exemple :
+spring.datasource.url=jdbc:mysql://localhost:3306/blog_api?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true  
+spring.datasource.username=blog_user  
+spring.datasource.password=blog_pwd  
+spring.jpa.hibernate.ddl-auto=update  
+spring.jpa.show-sql=true  
+spring.jpa.properties.hibernate.format_sql=true  
+server.port=8080  
 
-Preuve : ajout de l’obligation de s’authentifier pour les fonctionnalités sensibles, JWT opérationnel.
+### Lancer le projet
+- IntelliJ : Run `R5A05MiegemolleRomainApplication`
+- Maven : `mvn clean install -U` puis exécuter l’application
 
-Tag : autorisations
+---
 
-Preuve : adaptation des comportements et autorisations selon identité + rôles.
+## 6) Données de test (SQL)
 
-4. Mise en place base de données (TP2)
-Configuration (application.properties)
+### 6.1 Créer la base + un utilisateur MySQL (optionnel)
+CREATE DATABASE IF NOT EXISTS blog_api;  
+CREATE USER IF NOT EXISTS 'blog_user'@'localhost' IDENTIFIED BY 'blog_pwd';  
+GRANT ALL PRIVILEGES ON blog_api.* TO 'blog_user'@'localhost';  
+FLUSH PRIVILEGES;  
 
-L’application utilise une base MySQL. Exemple de configuration :
+### 6.2 Insérer des utilisateurs de test (2 publishers + 1 moderator)
 
-spring.datasource.url=jdbc:mysql://localhost:3306/blog_api?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-spring.datasource.username=blog_user
-spring.datasource.password=blog_pwd
+Important :  
+- Spring Security utilise BCrypt, donc les mots de passe doivent être stockés chiffrés (format BCrypt).  
+- Ici, on réutilise le hash BCrypt déjà présent (celui qui marche déjà dans la table).  
+- Donc ces comptes auront le même mot de passe en clair : celui correspondant à ce hash.
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
+USE blog_api;  
 
-server.port=8080
+INSERT INTO users (username, password, role) VALUES  
+('publisher_test', '$2a$10$KgjEHBGpdyDBStO3haoTv.9l5FpDZEplyu5qaFhOcXbjzG.2T57Eq', 'PUBLISHER'),  
+('alice',          '$2a$10$KgjEHBGpdyDBStO3haoTv.9l5FpDZEplyu5qaFhOcXbjzG.2T57Eq', 'PUBLISHER'),  
+('moderator_test', '$2a$10$KgjEHBGpdyDBStO3haoTv.9l5FpDZEplyu5qaFhOcXbjzG.2T57Eq', 'MODERATOR');  
 
-Principe
+Vérification :  
+SELECT id, username, role FROM users;
 
-La base “blog_api” doit exister.
+---
 
-Un utilisateur “blog_user” est dédié au projet.
+## 7) Endpoints (API)
 
-Les tables sont générées automatiquement par JPA au lancement (ddl-auto=update).
+### 7.1 Authentification
+POST `/auth/login`
 
-5. Fonctionnalités API (TP2)
-Articles
+Body JSON :
+{ "username": "alice", "password": "motDePasseEnClair" }
 
-Création : POST /articles
+Réponse : JWT (Bearer)  
+Le token est dans `token`.
 
-Liste : GET /articles
+### 7.2 Articles
+POST `/articles` (PUBLISHER requis)  
+GET `/articles` (public)  
+GET `/articles/{id}` (public)  
+PUT `/articles/{id}` (PUBLISHER auteur uniquement)  
+DELETE `/articles/{id}` (MODERATOR ou auteur PUBLISHER)
 
-Détail : GET /articles/{id}
+Body JSON (création) :
+{ "content": "Mon article" }
 
-Modification : PUT /articles/{id}
+Body JSON (update) :
+{ "content": "Contenu modifié" }
 
-Suppression : DELETE /articles/{id}
+### 7.3 Réactions
+POST `/articles/{id}/like` (PUBLISHER + pas auteur)  
+POST `/articles/{id}/dislike` (PUBLISHER + pas auteur)
 
-Réactions
+---
 
-Like : POST /articles/{id}/like
+## 8) JWT : utilisation et durée de vie
 
-Dislike : POST /articles/{id}/dislike
-
-Objectif : tracer quels utilisateurs ont liké/disliké via des relations JPA (tables de jointure).
-
-6. Authentification JWT (TP3 – Tag authentification)
-Route de login
-
-URL : /auth/login
-
-Méthode : POST
-
-Body JSON attendu (exemple) :
-
-{
-"username": "romain",
-"password": "motDePasseEnClair"
-}
-
-Réponse attendue (JwtDTO)
-
-Réponse contenant un token (Bearer) à envoyer ensuite dans le header Authorization.
-
-Utilisation du token
-
-Pour appeler une route protégée, ajouter un header :
-
+### Header à fournir (routes protégées)
 Authorization: Bearer <TOKEN>
 
-Durée de vie du token
+### Durée de vie du token
+Durée actuelle : 60 secondes (60000 ms).
 
-Dans ce projet, la durée est de 60 secondes (60000 ms).
-Cela vient de la configuration du TokenGenerator (valeur 1000*60).
-Donc en tests Postman, si le token expire il faut relancer /auth/login.
+---
 
-7. Autorisations (TP3 – Tag autorisations)
+## 9) Tests Postman (validation TP)
 
-Les règles suivantes sont appliquées.
+### 9.1 Tests rapides (manuel)
+A — Accès public (non authentifié)  
+- GET `http://localhost:8080/articles` → 200 OK  
+- GET `http://localhost:8080/articles/1` → 200 OK  
 
-Utilisateur non authentifié
+B — Login JWT  
+- POST `http://localhost:8080/auth/login` → 200 OK + token  
 
-Peut :
+C — Routes protégées sans token  
+- POST `/articles` sans Authorization → 401 Unauthorized  
 
-consulter les articles existants via GET /articles et GET /articles/{id}
+D — Tests PUBLISHER  
+- POST `/articles` → OK  
+- PUT `/articles/{id}`  
+  - auteur → OK  
+  - non auteur → 403 Forbidden  
+- POST `/articles/{id}/like` et `/dislike` sur article d’un autre → OK  
+- Like/dislike sur son propre article → 403 Forbidden  
 
-Données accessibles :
+E — Tests MODERATOR  
+- GET `/articles` : réponses complètes (listes + totaux)  
+- DELETE n’importe quel article → 204 No Content  
 
-auteur
+### 9.2 Collection Postman (importable)
+Une collection Postman JSON est fournie (à importer dans Postman) pour tester :  
+- login (publisher + moderator)  
+- create article  
+- list (public / publisher / moderator)  
+- like / dislike  
+- delete  
 
-date de publication
+---
 
-contenu
+## 10) Vérifications MySQL
 
-Utilisateur authentifié PUBLISHER
+Voir les users :  
+USE blog_api;  
+SELECT id, username, role FROM users;
 
-Peut :
+Voir les tables :  
+SHOW TABLES;
 
-poster un nouvel article (POST /articles)
+Voir les likes/dislikes (tables de jointure) :  
+SELECT * FROM article_likes;  
+SELECT * FROM article_dislikes;
 
-consulter les articles publiés (GET)
+---
 
-modifier ses articles (PUT uniquement si auteur)
+## 11) Conclusion
 
-supprimer ses articles (DELETE uniquement si auteur)
-
-liker/disliker les articles des autres (interdit sur ses propres articles)
-
-Données accessibles sur un article :
-
-auteur
-
-date
-
-contenu
-
-nombre total de likes
-
-nombre total de dislikes
-
-Utilisateur authentifié MODERATOR
-
-Peut :
-
-consulter n’importe quel article avec toutes les infos :
-
-auteur
-
-date
-
-contenu
-
-liste des utilisateurs ayant liké
-
-total likes
-
-liste des utilisateurs ayant disliké
-
-total dislikes
-
-supprimer n’importe quel article
-
-8. Procédure de test (Postman) – Preuves de conformité
-A. Vérifier accès public (non authentifié)
-
-Appeler GET http://localhost:8080/articles
- sans header Authorization
-Attendu : 200 OK
-Attendu : réponse limitée (auteur, date, contenu)
-
-Appeler GET http://localhost:8080/articles/1
- sans token
-Attendu : 200 OK
-
-B. Se connecter (JWT)
-
-Appeler POST http://localhost:8080/auth/login
-
-Body JSON exemple :
-
-{
-"username": "romain",
-"password": "motDePasseEnClair"
-}
-
-Attendu : 200 OK
-Attendu : token renvoyé
-
-C. Tester routes protégées sans token
-
-POST http://localhost:8080/articles
- sans token
-Attendu : 401 Unauthorized
-
-D. Tests PUBLISHER
-
-Avec token PUBLISHER :
-
-POST /articles
-Attendu : OK (article créé)
-
-Modifier un article dont on est auteur :
-
-PUT /articles/{id} avec token PUBLISHER auteur
-Attendu : 200 OK
-
-Modifier un article dont on n’est pas auteur :
-
-PUT /articles/{id} avec token PUBLISHER non auteur
-Attendu : 403 Forbidden
-
-Like/dislike :
-
-POST /articles/{id}/like avec token PUBLISHER sur article d’un autre
-Attendu : 200 OK
-
-#POST /articles/{id}/like sur son propre article
-Attendu : 403 Forbidden
-
-Même logique pour dislike.
-
-E. Tests MODERATOR
-
-GET /articles avec token MODERATOR
-Attendu : réponse complète (listes utilisateurs likes/dislikes + totaux)
-
-DELETE /articles/{id} avec token MODERATOR
-Attendu : 204 No Content même si pas auteur
-
-9. Données utilisateurs (exemple)
-
-Les utilisateurs sont stockés dans la table users.
-Chaque utilisateur a :
-
-username
-
-password (hash BCrypt)
-
-role (PUBLISHER ou MODERATOR)
-
-Exemple de vérification en base :
-
-SELECT * FROM users;
-
-10. Conclusion
-
-Les exigences des trois TP sont respectées :
-
-TP1 : application initialisée, endpoint /bonjour disponible, tag hello-world
-
-TP2 : base MySQL configurée et opérationnelle, CRUD articles + réactions, tag db-ready
-
-TP3 : authentification JWT fonctionnelle, autorisations par rôle et identité, tags authentification et autorisations
+- TP1 : initialisation + endpoint /bonjour → tag `hello-world`
+- TP2 : DB + API CRUD + réactions → tag `db-ready`
+- TP3 : JWT + autorisations rôle/identité → tags `authentification` et `autorisations`
