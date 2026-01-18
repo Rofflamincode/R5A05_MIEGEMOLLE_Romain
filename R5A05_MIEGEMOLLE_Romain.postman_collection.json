@@ -1,0 +1,223 @@
+{
+  "info": {
+    "_postman_id": "b2b7d3c2-9d2b-4df6-a8b3-9d7c2f1c9b11",
+    "name": "R5A05 - Blog API (Romain) - JWT + Roles",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login (publisher: romain)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"romain\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('jwt', json.token);",
+              "pm.collectionVariables.set('currentUser', json.username);",
+              "pm.test('Token present', function () { pm.expect(json.token).to.be.ok; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Login (publisher: alice)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('jwt', json.token);",
+              "pm.collectionVariables.set('currentUser', json.username);",
+              "pm.test('Token present', function () { pm.expect(json.token).to.be.ok; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Login (moderator)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"moderator_test\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('jwt', json.token);",
+              "pm.collectionVariables.set('currentUser', json.username);",
+              "pm.test('Token present', function () { pm.expect(json.token).to.be.ok; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Articles - List (public)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/articles",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles"]
+        }
+      }
+    },
+    {
+      "name": "Articles - Get by id (public)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/articles/{{articleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles", "{{articleId}}"]
+        }
+      }
+    },
+    {
+      "name": "Articles - Create (publisher)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/articles",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Mon premier article depuis Postman\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.id) pm.collectionVariables.set('articleId', json.id);",
+              "pm.test('Created', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Articles - Update (author publisher)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/articles/{{articleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles", "{{articleId}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Contenu modifié via Postman\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Articles - Like (publisher, not author)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/articles/{{articleId}}/like",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles", "{{articleId}}", "like"]
+        }
+      }
+    },
+    {
+      "name": "Articles - Dislike (publisher, not author)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/articles/{{articleId}}/dislike",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles", "{{articleId}}", "dislike"]
+        }
+      }
+    },
+    {
+      "name": "Articles - Delete (moderator OR author)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/articles/{{articleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["articles", "{{articleId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "jwt", "value": "" },
+    { "key": "password", "value": "MOT_DE_PASSE_EN_CLAIR_QUI_CORRESPOND_AU_HASH" },
+    { "key": "articleId", "value": "1" },
+    { "key": "currentUser", "value": "" }
+  ]
+}
