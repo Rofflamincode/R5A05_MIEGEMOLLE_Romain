@@ -1,5 +1,6 @@
 package com.example.R5A05_MIEGEMOLLE_Romain.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -46,6 +47,7 @@ public class User {
     }
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
