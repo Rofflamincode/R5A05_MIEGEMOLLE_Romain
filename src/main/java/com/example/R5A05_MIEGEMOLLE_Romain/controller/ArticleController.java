@@ -7,6 +7,7 @@ import com.example.R5A05_MIEGEMOLLE_Romain.model.User;
 import com.example.R5A05_MIEGEMOLLE_Romain.repository.ArticleRepository;
 import com.example.R5A05_MIEGEMOLLE_Romain.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -24,8 +25,10 @@ public class ArticleController {
         this.userRepo = userRepo;
     }
 
+    @PreAuthorize("hasRole('PUBLISHER')")
     @PostMapping
     public Article create(@RequestBody CreateArticleRequest req) {
+
         String username = com.example.R5A05_MIEGEMOLLE_Romain.security.SecurityUtils.currentUsername();
         User author = userRepo.findByUsername(username).orElseThrow();
 
@@ -36,6 +39,7 @@ public class ArticleController {
 
         return articleRepo.save(a);
     }
+
 
 
     @GetMapping
